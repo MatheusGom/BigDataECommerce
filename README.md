@@ -4,7 +4,7 @@
 <div>
   <ul>
     <li>
-      <a href="https://github.com/paulo-campos-57" target="_blank">Estela de Lacerda Oliveira</a>
+      <a href="https://github.com/EstelaLacerda">Estela de Lacerda Oliveira</a>
       <br>
       <small>elo@cesar.school</small>
     </li>
