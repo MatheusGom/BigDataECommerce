@@ -13,5 +13,10 @@
       <br>
       <small>pmc3@cesar.school</small>
     </li>
+     <li>
+      <a href="https://github.com/paulo-campos-57" target="_blank">Paulo Montenegro Campos</a>
+      <br>
+      <small>pmc3@cesar.school</small>
+    </li>
   </ul>
 </div>
