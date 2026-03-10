@@ -23,6 +23,11 @@
       <br>
       <small>pmc3@cesar.school</small>
     </li>
+    <li>
+      <a href="https://github.com/mariajuliapessoa" target="_blank">Maria Júlia Pessôa Cunha</a>
+      <br>
+      <small>mjpc@cesar.school</small>
+    </li>
    
   </ul>
 </div>
