@@ -11,7 +11,7 @@ from neo4j import GraphDatabase
 NEO4J_URI      = os.getenv("NEO4J_URI",      "bolt://localhost:7687")
 NEO4J_USER     = os.getenv("NEO4J_USER",     "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "olist1234")
-DATA_DIR       = os.getenv("DATA_DIR",       "./data")
+DATA_DIR       = os.getenv("DATA_DIR",       "./data/silver")
 BATCH_SIZE     = 100   # registros por transação
 
 logging.basicConfig(
@@ -184,6 +184,20 @@ def load_orders(session):
     log.info("Carregando Order...")
     df = clean(pd.read_csv(csv("olist_orders_dataset.csv")))
     rows = df.to_dict("records")
+    
+    date_cols = [
+        "order_purchase_timestamp",
+        "order_approved_at",
+        "order_delivered_carrier_date",
+        "order_delivered_customer_date",
+        "order_estimated_delivery_date",
+    ]
+
+    for col in date_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+            df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+            df[col] = df[col].where(df[col].notna(), None)
 
     q = """
     UNWIND $rows AS r
