@@ -12,7 +12,7 @@ NEO4J_URI      = os.getenv("NEO4J_URI",      "bolt://localhost:7687")
 NEO4J_USER     = os.getenv("NEO4J_USER",     "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "olist1234")
 DATA_DIR       = os.getenv("DATA_DIR",       "./data")
-BATCH_SIZE     = 500   # registros por transação
+BATCH_SIZE     = 100   # registros por transação
 
 logging.basicConfig(
     level=logging.INFO,
