@@ -1,3 +1,7 @@
 pandas
 neo4j
 tqdm
+matplotlib
+seaborn
+jupyter
+ipykernel
