@@ -28,6 +28,11 @@
       <br>
       <small>mjpc@cesar.school</small>
     </li>
+    <li>
+      <a href="https://github.com/RvmGit" target="_blank">Raphael Vasconcelos Morant</a>
+      <br>
+      <small>rvm@cesar.school</small>
+    </li>
       <li>
       <a href="https://github.com/Yara-R" target="_blank">Yara Rodrigues</a>
       <br>
