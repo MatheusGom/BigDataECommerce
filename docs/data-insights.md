@@ -40,7 +40,9 @@ A análise foca em três pilares principais:
 ## 4. Insights e Visualizações
 ### 4.1 Relação entre tempo estimado x tempo real
 Analisa a saúde operacional da base de dados, identificando o volume de pedidos que concluíram o ciclo logístico versus cancelamentos e pendências.
+
 <img width="876" height="548" alt="Image" src="https://github.com/user-attachments/assets/4abe26bc-989c-41eb-8925-751d1d08190f" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -53,7 +55,9 @@ Analisa a saúde operacional da base de dados, identificando o volume de pedidos
 
 ### 4.2 Tempo Médio de Entrega por Estado
 Identifica disparidades geográficas na performance logística brasileira, correlacionando o tempo de entrega com a localização do cliente.
+
 <img width="847" height="704" alt="Image" src="https://github.com/user-attachments/assets/ae2ef76c-4e91-4cd5-9b64-6a07c985209e" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -67,6 +71,7 @@ Identifica disparidades geográficas na performance logística brasileira, corre
 ### 4.3 Distribuição da Gravidade dos Atrasos
 Foca na experiência negativa do cliente, medindo quantos dias a entrega excedeu o prazo prometido originalmente.
 <img width="1023" height="548" alt="Image" src="https://github.com/user-attachments/assets/f1f6066b-9d48-4f3c-bbec-bc74dc742c5f" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -80,6 +85,7 @@ Foca na experiência negativa do cliente, medindo quantos dias a entrega excedeu
 ### 4.4 Relação entre tempo estimado x tempo real
 Analisa a precisão do algoritmo de frete da Olist comparando o que foi prometido ao cliente versus o que foi realizado.
 <img width="850" height="547" alt="image" src="https://github.com/user-attachments/assets/ad873409-b03d-47cf-b05a-f5be4e267bad" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -93,6 +99,7 @@ Analisa a precisão do algoritmo de frete da Olist comparando o que foi prometid
 ### 4.5 Volume de comprar por dia da semana
 Identifica o "ritmo cardíaco" das vendas para otimização de campanhas de marketing e escala operacional.
 <img width="868" height="548" alt="image" src="https://github.com/user-attachments/assets/b3eedc22-669c-472c-8b4b-56a7a0db6c57" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -106,6 +113,7 @@ Identifica o "ritmo cardíaco" das vendas para otimização de campanhas de mark
 ### 4.6 Percentual de pedidos com atraso por mês
 Monitora a saúde da operação ao longo do tempo, identificando crises e sazonalidades.
 <img width="1189" height="590" alt="image" src="https://github.com/user-attachments/assets/3f9face4-bc4c-4254-b053-0326b544f08c" />
+
 **Principais Insights:**
 <ul>
   <li>
@@ -114,6 +122,49 @@ Monitora a saúde da operação ao longo do tempo, identificando crises e sazona
   <li>
     <strong>Anomalias históricas:</strong> O pico de Março/2018 (18.4%) evidencia o impacto de eventos externos (como greves logísticas) na satisfação do cliente.
   </li>
+</ul>
+
+### 4.7 Tempo de aprovação de pagamento
+Esta análise foca nos desvios padrão do tempo entre a criação do pedido e a aprovação do pagamento, identificando gargalos financeiros e sistêmicos ao longo do histórico da plataforma.
+<img width="1186" height="590" alt="image" src="https://github.com/user-attachments/assets/ae0b73f2-4eef-4b49-b9ec-6470bd1e530f" />
+
+**Principais Insights:**
+<ul>
+   <li>
+      <strong>Outlier extremo de Abril/2017:</strong> Foi identificado um erro sistêmico ou fraude represada com um atraso superior a 4.000 horas. Um pagamento levar quase meio ano para ser aprovado indica um registro que ficou "preso" no gateway ou no banco de dados, representando uma falha crítica na experiência do usuário.
+   </li>
+   <li>
+      <strong>Sazonalidade de Outliers:</strong> Coincidindo com períodos de alta demanda (Natal e férias), há um aumento no volume de outliers. O sobrecarregamento dos sistemas de análise de fraude e revisões manuais nesse período gera atrasos que fogem da curva normal de operação.
+   </li>
+</ul>
+
+### 4.8 Taxa de conversão (pronto para envio x entregue)
+Esta visualização permite compreender o comportamento da malha logística e a rapidez com que o produto chega efetivamente às mãos do consumidor final, destacando a eficiência da operação física.
+<img width="990" height="590" alt="image" src="https://github.com/user-attachments/assets/4f32bb18-5b02-499c-8d04-ea4eb3f52efb" />
+
+**Principais Insights:**
+<ul>
+   <li>
+      <strong>Eficiência de pico:</strong> A maior concentração de pedidos ocorre entre 5 e 10 dias úteis. Este é o throughput real da operação: a maioria esmagadora dos clientes recebe seus produtos em pouco mais de uma semana. A forma de "funil invertido" mostra que, após os 15 dias, o número de pedidos cai drasticamente, indicando que entregas longas são a exceção, não a regra.
+   </li>
+   <li>
+      <strong>Monitoramento de cauda longa e não entregues:</strong> O gráfico revela uma "cauda" que se estende até 50+ dias, além de um dado crítico no box lateral: 3,0% de pedidos não entregues. Embora 3% pareça um número baixo, em um volume de quase 100 mil pedidos, isso representa quase 3.000 clientes frustrados. Identificar se esses "50+ dias" e "Não Entregues" estão concentrados em categorias de produtos grandes (móveis) ou regiões específicas (Norte/Nordeste) é vital para reduzir o churn.
+   </li>
+</ul>
+
+### 4.9 Comparação de entregas: capital x interior
+Esta análise demonstra a capilaridade da plataforma Olist e a relevância estratégica do consumo fora dos grandes eixos metropolitanos para o crescimento do e-commerce.
+
+<img width="567" height="590" alt="image" src="https://github.com/user-attachments/assets/6c4f6eca-3071-4a58-b553-8ce9b38d005d" />
+
+**Principais Insights:**
+<ul>
+   <li>
+      <strong>Predomínio  do interior:</strong> Com 63,6% das vendas concentradas no interior, fica evidente que o e-commerce funciona como um canal vital de acesso ao consumo para regiões onde o varejo físico é limitado. Para a Olist, isso significa que a malha logística deve ser otimizada para rotas de "longa distância", indo além das entregas "last-mile" das capitais.
+   </li>
+   <li>
+      <strong>Oportunidade logística e estratégica:</strong> Como o interior domina o volume, a implementação de centros de distribuição regionalizados (hubs) torna-se essencial. Dado que esta é a maior base de clientes, qualquer atraso logístico nessas regiões tem um impacto desproporcional na percepção geral de satisfação e na reputação da marca.
+   </li>
 </ul>
 
 ## 5. Próximos passos
