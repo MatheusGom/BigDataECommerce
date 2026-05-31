@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "description": "Configuração de features para o sistema de recomendação Olist",
+  "user_product_interactions": {
+    "file": "gold_user_product_interactions.csv",
+    "user_id_col": "customer_unique_id",
+    "item_id_col": "product_id",
+    "implicit_rating_col": "implicit_score",
+    "explicit_rating_col": "review_score",
+    "rating_scale": {
+      "min": 1,
+      "max": 5
+    },
+    "implicit_score_formula": "purchase_count * 1.0 + (review_score / 5.0) * 0.5",
+    "numeric_features": [
+      "total_spent",
+      "purchase_count",
+      "implicit_score"
+    ],
+    "categorical_features": [
+      "product_category_name_english",
+      "sentiment"
+    ],
+    "notes": "review_score pode ser nulo quando o cliente não avaliou o pedido."
+  },
+  "customer_profile": {
+    "file": "gold_customer_profile.csv",
+    "user_id_col": "customer_unique_id",
+    "numeric_features": [
+      "total_orders",
+      "total_spent",
+      "avg_review_score",
+      "avg_installments",
+      "avg_delivery_days",
+      "is_late_buyer_pct"
+    ],
+    "categorical_features": [
+      "customer_state",
+      "customer_city",
+      "preferred_category",
+      "preferred_payment_type"
+    ],
+    "cold_start_fallback": "gold_top_products_by_segment.csv (segment_type=state)"
+  },
+  "product_features": {
+    "file": "gold_product_features.csv",
+    "item_id_col": "product_id",
+    "numeric_features": [
+      "avg_review_score",
+      "total_reviews",
+      "avg_price",
+      "total_orders",
+      "avg_freight_value",
+      "positive_sentiment_ratio"
+    ],
+    "categorical_features": [
+      "product_category_name_english",
+      "seller_state"
+    ]
+  },
+  "category_affinity": {
+    "file": "gold_category_affinity.csv",
+    "user_id_col": "customer_unique_id",
+    "item_id_col": "product_category_name_english",
+    "affinity_col": "affinity_score",
+    "affinity_formula": "purchase_norm*0.5 + spent_norm*0.3 + review_norm*0.2",
+    "affinity_range": [
+      0.0,
+      1.0
+    ],
+    "notes": "Normalizado por cliente via min-max. Usar para recomendação cross-category."
+  },
+  "product_cooccurrence": {
+    "file": "gold_product_cooccurrence.csv",
+    "item_id_col_a": "product_id_a",
+    "item_id_col_b": "product_id_b",
+    "similarity_col": "cooccurrence_score",
+    "similarity_formula": "Jaccard: |A∩B| / |A∪B|",
+    "use_case": "Regra de associação 'quem comprou A também comprou B' sem modelo treinado."
+  },
+  "cold_start": {
+    "file": "gold_top_products_by_segment.csv",
+    "segment_types": [
+      "global",
+      "state",
+      "category"
+    ],
+    "use_case": "Retornar recomendações para usuários sem histórico. Filtrar por segment_type e segment_value.",
+    "example_query": "segment_type=='state' & segment_value=='SP' — top 10 produtos em SP"
+  }
+}

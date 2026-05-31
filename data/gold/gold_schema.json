@@ -1,0 +1,111 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-05-31T01:19:35Z",
+  "description": "Contrato de dados da camada Gold — Sistema de Recomendação Olist",
+  "tables": {
+    "gold_user_product_interactions": {
+      "row_count": 101883,
+      "column_count": 8,
+      "columns": {
+        "customer_unique_id": {
+          "type": "string",
+          "nullable": false
+        },
+        "product_id": {
+          "type": "string",
+          "nullable": false
+        },
+        "product_category_name_english": {
+          "type": "string",
+          "nullable": true
+        },
+        "purchase_count": {
+          "type": "integer",
+          "nullable": false,
+          "min": 1.0,
+          "max": 24.0
+        },
+        "total_spent": {
+          "type": "float",
+          "nullable": false,
+          "min": 7.28,
+          "max": 13664.08
+        },
+        "review_score": {
+          "type": "float",
+          "nullable": true,
+          "min": 1.0,
+          "max": 5.0
+        },
+        "sentiment": {
+          "type": "string",
+          "nullable": true
+        },
+        "implicit_score": {
+          "type": "float",
+          "nullable": false,
+          "min": 1.1,
+          "max": 24.4
+        }
+      }
+    },
+    "gold_product_features": {
+      "row_count": 32946,
+      "column_count": 10,
+      "columns": {
+        "product_id": {
+          "type": "string",
+          "nullable": false
+        },
+        "product_category_name": {
+          "type": "string",
+          "nullable": true
+        },
+        "product_category_name_english": {
+          "type": "string",
+          "nullable": true
+        },
+        "avg_price": {
+          "type": "float",
+          "nullable": true,
+          "min": 0.85,
+          "max": 2110.0
+        },
+        "avg_freight_value": {
+          "type": "float",
+          "nullable": true,
+          "min": 0.01,
+          "max": 409.68
+        },
+        "total_orders": {
+          "type": "float",
+          "nullable": true,
+          "min": 1.0,
+          "max": 527.0
+        },
+        "avg_review_score": {
+          "type": "float",
+          "nullable": true,
+          "min": 1.0,
+          "max": 5.0
+        },
+        "total_reviews": {
+          "type": "float",
+          "nullable": true,
+          "min": 0.0,
+          "max": 524.0
+        },
+        "positive_sentiment_ratio": {
+          "type": "float",
+          "nullable": true,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "seller_state": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    }
+  }
+}

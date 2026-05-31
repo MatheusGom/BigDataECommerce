@@ -1,10 +1,7 @@
 import os
-import time
 import logging
-from typing import List, Dict, Any
 import pandas as pd
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
@@ -12,225 +9,214 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "olist1234")
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 DATA_DIR = os.getenv("DATA_DIR", "./data/silver")
 
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "100"))
-MAX_RETRIES = int(os.getenv("MAX_RETRIES", "5"))
-RETRY_BASE_SECONDS = float(os.getenv("RETRY_BASE_SECONDS", "2"))
-TX_TIMEOUT_SECONDS = int(os.getenv("TX_TIMEOUT_SECONDS", "300"))
+BATCH_SIZE = 500
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
+def csv(f): return os.path.join(DATA_DIR, f)
 
-def csv(filename: str):
-    return os.path.join(DATA_DIR, filename)
+def run(session, query, rows, label):
+    for i in range(0, len(rows), BATCH_SIZE):
+        batch = rows[i:i+BATCH_SIZE]
+        session.run(query, rows=batch).consume()
+        if i % (BATCH_SIZE * 10) == 0:
+            log.info(f"{label} {i}/{len(rows)}")
 
-
-def clean(df):
-    return df.where(pd.notna(df), None)
-
-
-def to_str(df, cols):
-    for c in cols:
-        if c in df.columns:
-            df[c] = df[c].astype(str).str.strip()
-    return df
-
-
-def to_datetime_str(series):
-    s = pd.to_datetime(series, errors="coerce")
-    return s.dt.strftime("%Y-%m-%d %H:%M:%S")
-
-
-def batches(rows, size):
-    for i in range(0, len(rows), size):
-        yield rows[i:i+size]
-
-
-def retryable_run(session, query, rows, label):
-    total = max(1, (len(rows) + BATCH_SIZE - 1) // BATCH_SIZE)
-
-    for i, batch in enumerate(batches(rows, BATCH_SIZE), 1):
-        attempt = 0
-        while True:
-            try:
-                session.run(
-                    "CALL { WITH $rows AS rows " + query + " } IN TRANSACTIONS",
-                    rows=batch,
-                    timeout=TX_TIMEOUT_SECONDS,
-                ).consume()
-                break
-            except (ServiceUnavailable, SessionExpired, TransientError):
-                attempt += 1
-                if attempt > MAX_RETRIES:
-                    raise
-                time.sleep(RETRY_BASE_SECONDS * attempt)
-
-
-CONSTRAINTS = [
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (c:Customer) REQUIRE c.customer_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (o:Order) REQUIRE o.order_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (p:Product) REQUIRE p.product_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Seller) REQUIRE s.seller_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (r:Review) REQUIRE r.review_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (pay:Payment) REQUIRE pay.payment_id IS UNIQUE",
-    "CREATE CONSTRAINT IF NOT EXISTS FOR (oi:OrderItem) REQUIRE oi.item_id IS UNIQUE",
-]
-
-
-def create_schema(session):
-    for s in CONSTRAINTS:
-        session.run(s).consume()
-
+def clear(session):
+    session.run("MATCH (n) DETACH DELETE n").consume()
 
 def load_customers(session):
-    df = clean(pd.read_csv(csv("olist_customers_dataset.csv")))
-    df = to_str(df, ["customer_id"])
-
+    df = pd.read_csv(csv("olist_customers_dataset.csv"))
+    df = df.dropna(subset=["customer_id"])
+    df["customer_id"] = df["customer_id"].astype(str).str.strip()
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
     MERGE (c:Customer {customer_id:r.customer_id})
-    SET c.city=r.customer_city, c.state=r.customer_state
+    SET c.city=r.customer_city,
+        c.state=r.customer_state,
+        c.zip=r.customer_zip_code_prefix
     """
-
-    retryable_run(session, q, rows, "customers")
-
+    run(session, q, rows, "customers")
 
 def load_orders(session):
-    df = clean(pd.read_csv(csv("olist_orders_dataset.csv")))
-    df = to_str(df, ["order_id", "customer_id"])
-
-    for c in ["order_purchase_timestamp","order_approved_at","order_delivered_customer_date","order_estimated_delivery_date"]:
-        df[c] = to_datetime_str(df[c]) if c in df else None
-
+    df = pd.read_csv(csv("olist_orders_dataset.csv"))
+    df = df.dropna(subset=["order_id","customer_id"])
+    df["order_id"] = df["order_id"].astype(str).str.strip()
+    df["customer_id"] = df["customer_id"].astype(str).str.strip()
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
     MERGE (o:Order {order_id:r.order_id})
-    SET o.status=r.order_status
+    SET o.status=r.order_status,
+        o.purchase=r.order_purchase_timestamp,
+        o.delivered=r.order_delivered_customer_date,
+        o.estimated=r.order_estimated_delivery_date
     """
-
-    retryable_run(session, q, rows, "orders")
-
+    run(session, q, rows, "orders")
 
 def load_products(session):
-    df = clean(pd.read_csv(csv("olist_products_dataset.csv")))
-    df = to_str(df, ["product_id", "product_category_name"])
-
+    df = pd.read_csv(csv("olist_products_dataset.csv"))
+    df = df.dropna(subset=["product_id"])
+    df["product_id"] = df["product_id"].astype(str).str.strip()
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
     MERGE (p:Product {product_id:r.product_id})
     SET p.category=r.product_category_name
     """
-
-    retryable_run(session, q, rows, "products")
-
+    run(session, q, rows, "products")
 
 def load_sellers(session):
-    df = clean(pd.read_csv(csv("olist_sellers_dataset.csv")))
-    df = to_str(df, ["seller_id"])
-
+    df = pd.read_csv(csv("olist_sellers_dataset.csv"))
+    df = df.dropna(subset=["seller_id"])
+    df["seller_id"] = df["seller_id"].astype(str).str.strip()
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
     MERGE (s:Seller {seller_id:r.seller_id})
-    SET s.city=r.seller_city, s.state=r.seller_state
+    SET s.city=r.seller_city,
+        s.state=r.seller_state,
+        s.zip=r.seller_zip_code_prefix
     """
+    run(session, q, rows, "sellers")
 
-    retryable_run(session, q, rows, "sellers")
-
-
-def load_order_items(session):
-    df = clean(pd.read_csv(csv("olist_order_items_dataset.csv")))
-    df = to_str(df, ["order_id","product_id","seller_id"])
-
-    df["item_id"] = df["order_id"] + "_" + df["order_item_id"].astype(str)
-
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    df["freight_value"] = pd.to_numeric(df["freight_value"], errors="coerce")
-
-    rows = df.dropna(subset=["price","product_id","seller_id"]).to_dict("records")
-
+def load_geolocation(session):
+    df = pd.read_csv(csv("olist_geolocation_dataset.csv"))
+    df = df.dropna(subset=["geolocation_zip_code_prefix"])
+    df = df.rename(columns={
+        "geolocation_zip_code_prefix": "zip",
+        "geolocation_city": "city",
+        "geolocation_state": "state"
+    })
+    df = df.drop_duplicates(subset=["zip"])
+    rows = df.to_dict("records")
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
+    MERGE (g:Geolocation {zip:r.zip})
+    SET g.city=r.city,
+        g.state=r.state
+    """
+    run(session, q, rows, "geolocation")
+
+def load_items(session):
+    df = pd.read_csv(csv("olist_order_items_dataset.csv"))
+    df = df.dropna(subset=["order_id","product_id","seller_id"])
+    df["order_id"] = df["order_id"].astype(str).str.strip()
+    df["product_id"] = df["product_id"].astype(str).str.strip()
+    df["seller_id"] = df["seller_id"].astype(str).str.strip()
+    df["item_id"] = df["order_id"] + "_" + df["order_item_id"].astype(str)
+    rows = df.to_dict("records")
+    q = """
+    UNWIND $rows AS r
     MATCH (o:Order {order_id:r.order_id})
     MATCH (p:Product {product_id:r.product_id})
     MATCH (s:Seller {seller_id:r.seller_id})
-    WITH o,p,s,r
-    WHERE o IS NOT NULL AND p IS NOT NULL AND s IS NOT NULL
-    MERGE (oi:OrderItem {item_id:r.item_id})
-    SET oi.price=toFloat(r.price)
-    MERGE (o)-[:CONTAINS]->(oi)
-    MERGE (oi)-[:REFERENCES]->(p)
-    MERGE (oi)-[:FULFILLED_BY]->(s)
+    MERGE (i:OrderItem {item_id:r.item_id})
+    SET i.price=toFloat(r.price),
+        i.freight=toFloat(r.freight_value)
+    MERGE (o)-[:CONTAINS]->(i)
+    MERGE (i)-[:REFERENCES]->(p)
+    MERGE (i)-[:FULFILLED_BY]->(s)
     """
-
-    retryable_run(session, q, rows, "order_items")
-
+    run(session, q, rows, "items")
 
 def load_payments(session):
-    df = clean(pd.read_csv(csv("olist_order_payments_dataset.csv")))
-    df = to_str(df, ["order_id","payment_type"])
-
+    df = pd.read_csv(csv("olist_order_payments_dataset.csv"))
+    df = df.dropna(subset=["order_id","payment_sequential"])
+    df["order_id"] = df["order_id"].astype(str).str.strip()
     df["payment_id"] = df["order_id"] + "_" + df["payment_sequential"].astype(str)
-
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
     MERGE (p:Payment {payment_id:r.payment_id})
     SET p.type=r.payment_type,
-        p.value=toFloat(r.payment_value),
-        p.installments=toInteger(r.payment_installments)
+        p.value=toFloat(r.payment_value)
     """
+    run(session, q, rows, "payments")
 
-    retryable_run(session, q, rows, "payments")
-
-
-def load_relations(session):
-    df = clean(pd.read_csv(csv("olist_orders_dataset.csv")))
-    df = to_str(df, ["customer_id","order_id"])
-
+def load_reviews(session):
+    df = pd.read_csv(csv("olist_order_reviews_dataset.csv"))
+    df = df.drop_duplicates("review_id")
+    df = df.dropna(subset=["review_id"])
     rows = df.to_dict("records")
-
     q = """
-    UNWIND rows AS r
+    UNWIND $rows AS r
+    MERGE (rev:Review {review_id:r.review_id})
+    SET rev.score=toInteger(r.review_score)
+    """
+    run(session, q, rows, "reviews")
+
+def rel_customer_orders(session):
+    df = pd.read_csv(csv("olist_orders_dataset.csv"))
+    df = df.dropna(subset=["customer_id","order_id"])
+    df["customer_id"] = df["customer_id"].astype(str).str.strip()
+    df["order_id"] = df["order_id"].astype(str).str.strip()
+    rows = df.to_dict("records")
+    q = """
+    UNWIND $rows AS r
     MATCH (c:Customer {customer_id:r.customer_id})
     MATCH (o:Order {order_id:r.order_id})
     MERGE (c)-[:PLACED]->(o)
     """
+    run(session, q, rows, "placed")
 
-    retryable_run(session, q, rows, "relations")
+def rel_payments(session):
+    df = pd.read_csv(csv("olist_order_payments_dataset.csv"))
+    df = df.dropna(subset=["order_id","payment_sequential"])
+    df["order_id"] = df["order_id"].astype(str).str.strip()
+    df["payment_id"] = df["order_id"] + "_" + df["payment_sequential"].astype(str)
+    rows = df.to_dict("records")
+    q = """
+    UNWIND $rows AS r
+    MATCH (o:Order {order_id:r.order_id})
+    MATCH (p:Payment {payment_id:r.payment_id})
+    MERGE (o)-[:PAID_WITH]->(p)
+    """
+    run(session, q, rows, "paid_with")
 
+def rel_geolocation(session):
+    df_c = pd.read_csv(csv("olist_customers_dataset.csv"))
+    df_c = df_c.dropna(subset=["customer_id","customer_zip_code_prefix"])
+    df_c["customer_id"] = df_c["customer_id"].astype(str).str.strip()
+    rows_c = df_c.rename(columns={"customer_zip_code_prefix": "zip"}).to_dict("records")
+    q_c = """
+    UNWIND $rows AS r
+    MATCH (c:Customer {customer_id:r.customer_id})
+    MATCH (g:Geolocation {zip:r.zip})
+    MERGE (c)-[:LOCATED_IN]->(g)
+    """
+    run(session, q_c, rows_c, "customer_located")
 
-def validate(session):
-    for l in ["Customer","Order","Product","Seller","OrderItem","Payment"]:
-        print(l, session.run(f"MATCH (n:{l}) RETURN count(n) AS c").single()["c"])
-
+    df_s = pd.read_csv(csv("olist_sellers_dataset.csv"))
+    df_s = df_s.dropna(subset=["seller_id","seller_zip_code_prefix"])
+    df_s["seller_id"] = df_s["seller_id"].astype(str).str.strip()
+    rows_s = df_s.rename(columns={"seller_zip_code_prefix": "zip"}).to_dict("records")
+    q_s = """
+    UNWIND $rows AS r
+    MATCH (s:Seller {seller_id:r.seller_id})
+    MATCH (g:Geolocation {zip:r.zip})
+    MERGE (s)-[:LOCATED_IN]->(g)
+    """
+    run(session, q_s, rows_s, "seller_located")
 
 def main():
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-
     with driver.session(database=NEO4J_DATABASE) as session:
-        create_schema(session)
-
+        clear(session)
         load_customers(session)
-        load_sellers(session)
-        load_products(session)
         load_orders(session)
+        load_products(session)
+        load_sellers(session)
+        load_geolocation(session)
+        load_items(session)
         load_payments(session)
-        load_order_items(session)
-        load_relations(session)
-
-        validate(session)
-
+        load_reviews(session)
+        rel_customer_orders(session)
+        rel_payments(session)
+        rel_geolocation(session)
     driver.close()
-
 
 if __name__ == "__main__":
     main()
