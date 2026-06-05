@@ -5,3 +5,8 @@ matplotlib
 seaborn
 jupyter
 ipykernel
+scikit-learn
+xgboost
+implicit
+scipy
+numpy
