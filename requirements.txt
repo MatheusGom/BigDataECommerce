@@ -10,3 +10,5 @@ xgboost
 implicit
 scipy
 numpy
+fastapi
+uvicorn
